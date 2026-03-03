@@ -125,7 +125,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: dark.bg, fontFamily: "'Inter', sans-serif", color: dark.text }}>
       {/* Header */}
-      <div style={{ background: dark.card, borderBottom: `1px solid ${dark.border}`, padding: "14px 24px", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ background: dark.card, padding: "14px 24px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ background: dark.orange, borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, boxShadow: `0 0 12px ${dark.orangeGlow}` }}>🔥</div>
         <span style={{ fontWeight: 800, fontSize: 18 }}>FIRE Calculus</span>
         <span style={{ marginLeft: "auto", fontSize: 13, color: dark.muted }}>Free · No sign-up · No data stored</span>

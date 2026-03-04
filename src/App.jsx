@@ -76,13 +76,13 @@ function getParamsFromUrl() {
 
 export default function App() {
   const url = getParamsFromUrl();
-  const [age, setAge] = useState(Number(url.age) || 27);
-  const [savings, setSavings] = useState(Number(url.savings) || 20000);
-  const [monthlyContrib, setMonthlyContrib] = useState(Number(url.monthlyContrib) || 2000);
-  const [annualExpenses, setAnnualExpenses] = useState(Number(url.annualExpenses) || 50000);
-  const [returnRate, setReturnRate] = useState(Number(url.returnRate) || 7);
-  const [inflationRate, setInflationRate] = useState(Number(url.inflationRate) || 3);
-  const [withdrawalRate, setWithdrawalRate] = useState(Number(url.withdrawalRate) || 4);
+  const [age, setAge] = useState(url.age ? Number(url.age) : "");
+  const [savings, setSavings] = useState(url.savings ? Number(url.savings) : "");
+  const [monthlyContrib, setMonthlyContrib] = useState(url.monthlyContrib ? Number(url.monthlyContrib) : "");
+  const [annualExpenses, setAnnualExpenses] = useState(url.annualExpenses ? Number(url.annualExpenses) : "");
+  const [returnRate, setReturnRate] = useState(url.returnRate ? Number(url.returnRate) : "");
+  const [inflationRate, setInflationRate] = useState(url.inflationRate ? Number(url.inflationRate) : "");
+  const [withdrawalRate, setWithdrawalRate] = useState(url.withdrawalRate ? Number(url.withdrawalRate) : "");
   const [windfall, setWindfall] = useState(url.windfall ? Number(url.windfall) : "");
   const [oneOff, setOneOff] = useState(url.oneOff ? Number(url.oneOff) : "");
   const [annualIrregular, setAnnualIrregular] = useState(url.annualIrregular ? Number(url.annualIrregular) : "");
@@ -95,40 +95,49 @@ export default function App() {
     const oneOffVal = Number(oneOff) || 0;
     const annualIrregularVal = Number(annualIrregular) || 0;
     const monthlyIrregularVal = Number(monthlyIrregular) || 0;
+    const ageVal = Number(age) || 27;
+    const savingsVal = Number(savings) || 0;
+    const monthlyContribVal = Number(monthlyContrib) || 0;
+    const annualExpensesVal = Number(annualExpenses) || 50000;
+    const returnRateVal = Number(returnRate) || 7;
+    const inflationRateVal = Number(inflationRate) || 3;
+    const withdrawalRateVal = Number(withdrawalRate) || 4;
 
-    const fireNumber = annualExpenses / (withdrawalRate / 100);
-    const realReturn = (1 + returnRate / 100) / (1 + inflationRate / 100) - 1;
+    const fireNumber = annualExpensesVal / (withdrawalRateVal / 100);
+    const realReturn = (1 + returnRateVal / 100) / (1 + inflationRateVal / 100) - 1;
     const monthlyReturn = Math.pow(1 + realReturn, 1 / 12) - 1;
     const cMonthlyReturn = Math.pow(1 + Math.max(0, realReturn - 0.01), 1 / 12) - 1;
     const aMonthlyReturn = Math.pow(1 + realReturn + 0.01, 1 / 12) - 1;
 
-    const baseYears = calcYearsToFire(savings + windfallVal, monthlyContrib, fireNumber, realReturn);
-    const withExpensesYears = calcYearsToFire(savings + windfallVal, monthlyContrib, fireNumber, realReturn, oneOffVal, annualIrregularVal, monthlyIrregularVal);
+    const baseYears = calcYearsToFire(savingsVal, monthlyContribVal, fireNumber, realReturn);
+    const withExpensesYears = calcYearsToFire(savingsVal + windfallVal, monthlyContribVal, fireNumber, realReturn, oneOffVal, annualIrregularVal, monthlyIrregularVal);
     const impactYears = withExpensesYears - baseYears;
 
-    let portfolio = savings + windfallVal, cPort = savings + windfallVal, aPort = savings + windfallVal;
-    let adjPort = Math.max(0, savings + windfallVal - oneOffVal);
-    let totalContributed = savings + windfallVal, year = 0;
+    let portfolio = savingsVal, cPort = savingsVal, aPort = savingsVal;
+    let adjPort = Math.max(0, savingsVal + windfallVal - oneOffVal);
+    let totalContributed = savingsVal, year = 0;
     const chartData = [], breakdownData = [];
     const maxYears = Math.max(withExpensesYears, baseYears) + 1;
+    const mIrr = monthlyIrregularVal;
+    const aIrr = annualIrregularVal;
 
     while (year < maxYears && year < 60) {
-      chartData.push({ year, age: age + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
-      breakdownData.push({ year, age: age + year, contributions: Math.round(totalContributed), growth: Math.max(0, Math.round(portfolio - totalContributed)) });
+      chartData.push({ year, age: ageVal + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
+      breakdownData.push({ year, age: ageVal + year, contributions: Math.round(totalContributed), growth: Math.max(0, Math.round(portfolio - totalContributed)) });
       for (let m = 0; m < 12; m++) {
-        portfolio = portfolio * (1 + monthlyReturn) + monthlyContrib;
-        cPort = cPort * (1 + cMonthlyReturn) + monthlyContrib;
-        aPort = aPort * (1 + aMonthlyReturn) + monthlyContrib;
-        adjPort = adjPort * (1 + monthlyReturn) + (monthlyContrib - monthlyIrregularVal);
-        totalContributed += monthlyContrib;
+        portfolio = portfolio * (1 + monthlyReturn) + monthlyContribVal;
+        cPort = cPort * (1 + cMonthlyReturn) + monthlyContribVal;
+        aPort = aPort * (1 + aMonthlyReturn) + monthlyContribVal;
+        adjPort = adjPort * (1 + monthlyReturn) + (monthlyContribVal - mIrr);
+        totalContributed += monthlyContribVal;
       }
-      adjPort -= annualIrregularVal;
+      adjPort -= aIrr;
       year++;
     }
-    chartData.push({ year, age: age + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
-    breakdownData.push({ year, age: age + year, contributions: Math.round(totalContributed), growth: Math.max(0, Math.round(portfolio - totalContributed)) });
+    chartData.push({ year, age: ageVal + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
+    breakdownData.push({ year, age: ageVal + year, contributions: Math.round(totalContributed), growth: Math.max(0, Math.round(portfolio - totalContributed)) });
 
-    return { fireNumber, yearsToFire: baseYears, fireAge: age + baseYears, withExpensesYears, withExpensesAge: age + withExpensesYears, impactYears, chartData, breakdownData };
+    return { fireNumber, yearsToFire: baseYears, fireAge: ageVal + baseYears, withExpensesYears, withExpensesAge: ageVal + withExpensesYears, impactYears, chartData, breakdownData };
   }, [age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular]);
 
   const handleShare = () => {
@@ -190,7 +199,7 @@ export default function App() {
                 </label>
                 <div style={{ position: "relative" }}>
                   {prefix && <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: dark.muted, fontSize: 15 }}>{prefix}</span>}
-                  <input type="number" value={value} min={min} max={max} step={step} onChange={(e) => set(Number(e.target.value))} style={{ ...inputBase, paddingLeft: prefix ? 22 : 12, paddingRight: suffix ? 40 : 12 }} />
+                  <input type="number" value={value} placeholder="0" min={min} max={max} step={step} onChange={(e) => set(e.target.value === "" ? "" : Number(e.target.value))} style={{ ...inputBase, paddingLeft: prefix ? 22 : 12, paddingRight: suffix ? 40 : 12 }} />
                   {suffix && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: dark.muted, fontSize: 13 }}>{suffix}</span>}
                 </div>
               </div>
@@ -228,7 +237,7 @@ export default function App() {
                 { label: "FIRE Date", value: `Age ${result.fireAge}`, sub: `In ${result.yearsToFire} years`, color: dark.orange },
                 { label: "FIRE Number", value: fmt(result.fireNumber), sub: "Portfolio needed", color: dark.green },
                 { label: "Years to FIRE", value: `${result.yearsToFire} yrs`, sub: result.yearsToFire < 20 ? "🔥 Retiring early!" : "On track", color: dark.purple },
-                { label: "Monthly Budget", value: fmt(annualExpenses / 12), sub: "In today's dollars", color: dark.blue },
+                { label: "Monthly Budget", value: fmt(Number(annualExpenses) / 12 || 0), sub: "In today's dollars", color: dark.blue },
               ].map(({ label, value, sub, color }) => (
                 <div key={label} style={{ background: dark.card, borderRadius: 14, padding: "20px 18px", border: `1px solid ${dark.border}`, borderTop: `3px solid ${color}` }}>
                   <p style={{ fontSize: 11, color: dark.muted, fontWeight: 600, margin: 0, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</p>

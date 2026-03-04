@@ -99,14 +99,21 @@ const COUNTRIES = {
 
 const DEFAULT_COUNTRY = "US";
 
-function fmtCurrency(n, symbol) {
+function fmtCurrency(n, symbol, countryCode) {
+  if (countryCode === "IN") {
+    // Indian number system: crores and lakhs
+    if (n >= 1e7) return `${symbol}${(n / 1e7).toFixed(2)} Cr`;
+    if (n >= 1e5) return `${symbol}${(n / 1e5).toFixed(2)} L`;
+    return `${symbol}${Math.round(n).toLocaleString("en-IN")}`;
+  }
   if (n >= 1e6) return `${symbol}${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `${symbol}${Math.round(n).toLocaleString()}`;
   return `${symbol}${Math.round(n)}`;
 }
 // Global fmt used by components outside App — sym is injected via context
 let _globalSym = "$";
-const fmt = (n) => fmtCurrency(n, _globalSym);
+let _globalCountry = "US";
+const fmt = (n) => fmtCurrency(n, _globalSym, _globalCountry);
 // ─────────────────────────────────────────────────────────────────
 
 
@@ -209,7 +216,8 @@ export default function App() {
   const [country, setCountry] = useState(url.country || DEFAULT_COUNTRY);
   const countryData = COUNTRIES[country] || COUNTRIES[DEFAULT_COUNTRY];
   const sym = countryData.currency;
-  _globalSym = sym; // keep global in sync for ChartTooltip
+  _globalSym = sym; // keep globals in sync for ChartTooltip
+  _globalCountry = country;
   const [submitted, setSubmitted] = useState(!!url.age);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -395,7 +403,7 @@ export default function App() {
         ctx.beginPath(); ctx.moveTo(chartX + padL, y); ctx.lineTo(chartX + padL + pW, y); ctx.stroke();
         ctx.fillStyle = "#64748b"; ctx.font = "10px sans-serif"; ctx.textAlign = "right";
         const v = maxVal * t;
-        ctx.fillText(v >= 1e6 ? `${sym}${(v/1e6).toFixed(1)}M` : `${sym}${(v/1000).toFixed(0)}k`, chartX + padL - 4, y + 3);
+        ctx.fillText(fmtCurrency(v, sym, country), chartX + padL - 4, y + 3);
       });
 
       // FIRE reference line
@@ -643,7 +651,7 @@ export default function App() {
                 <LineChart data={result.chartData} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e2130" />
                   <XAxis dataKey="age" stroke={dark.muted} tick={{ fontSize: 12, fill: dark.muted }} label={{ value: "Age", position: "insideBottom", offset: -10, fill: dark.muted, fontSize: 12 }} />
-                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `${sym}${(v / 1e6).toFixed(1)}M` : `${sym}${(v / 1000).toFixed(0)}k`} />
+                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => fmt(v)} />
                   <Tooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 16, color: dark.muted }} />
                   {milestones.map(m => <ReferenceLine key={m.label} y={m.value} stroke={m.color} strokeDasharray="5 3" />)}
@@ -679,7 +687,7 @@ export default function App() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e2130" />
                   <XAxis dataKey="age" stroke={dark.muted} tick={{ fontSize: 12, fill: dark.muted }} label={{ value: "Age", position: "insideBottom", offset: -10, fill: dark.muted, fontSize: 12 }} />
-                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `${sym}${(v / 1e6).toFixed(1)}M` : `${sym}${(v / 1000).toFixed(0)}k`} />
+                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => fmt(v)} />
                   <Tooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 16, color: dark.muted }} />
                   <Area type="monotone" dataKey="contributions" name="Your Contributions" stroke={dark.purple} fill="url(#gContrib)" strokeWidth={2} />

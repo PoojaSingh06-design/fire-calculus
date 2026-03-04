@@ -27,18 +27,6 @@ function trackEvent(eventName, params = {}) {
 }
 // ─────────────────────────────────────────────────────────────────
 
-// ── html2canvas loader ────────────────────────────────────────────
-function loadHtml2Canvas() {
-  return new Promise((resolve) => {
-    if (window.html2canvas) return resolve(window.html2canvas);
-    const s = document.createElement("script");
-    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-    s.onload = () => resolve(window.html2canvas);
-    document.head.appendChild(s);
-  });
-}
-// ─────────────────────────────────────────────────────────────────
-
 const fmt = (n) => n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`;
 
 const dark = {
@@ -208,24 +196,158 @@ export default function App() {
 
   const whatIfExpFireAge = result.ageVal + calcYearsToFire(result.savingsVal, result.monthlyContribVal, expensesSlider / (result.withdrawalRateVal / 100), result.realReturn);
 
-  const handleSaveImage = async () => {
-    if (!shareCardRef.current || saving) return;
+  const handleSaveImage = () => {
+    if (saving) return;
     setSaving(true);
     trackEvent("save_results_image", { fire_age: result.fireAge, years_to_fire: result.yearsToFire });
+
     try {
-      const html2canvas = await loadHtml2Canvas();
-      const canvas = await html2canvas(shareCardRef.current, {
-        backgroundColor: "#0f1117",
-        scale: 2,
-        useCORS: true,
-        logging: false,
+      const W = 800, H = 480;
+      const canvas = document.createElement("canvas");
+      canvas.width = W * 2; canvas.height = H * 2;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(2, 2);
+
+      // Background
+      ctx.fillStyle = "#0f1117";
+      ctx.fillRect(0, 0, W, H);
+
+      // Header bar
+      ctx.fillStyle = "#1a1d27";
+      ctx.fillRect(0, 0, W, 56);
+
+      // Fire emoji circle
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath(); ctx.arc(36, 28, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.font = "bold 16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("🔥", 36, 34);
+
+      // App title
+      ctx.fillStyle = "#f1f5f9";
+      ctx.font = "bold 16px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("FIRE Calculus — My Results", 62, 33);
+
+      // Subtitle right
+      ctx.fillStyle = "#64748b";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText("firecalculus.com · Free · No sign-up · No data stored", W - 20, 33);
+
+      // 4 stat cards
+      const cards = [
+        { label: "I CAN RETIRE AT", value: `Age ${result.fireAge}`, color: "#f97316" },
+        { label: "FIRE NUMBER", value: fmt(result.fireNumber), color: "#10b981" },
+        { label: "YEARS TO FIRE", value: `${result.yearsToFire} years`, color: "#818cf8" },
+        { label: "MONTHLY BUDGET", value: fmt(Math.round((Number(result.annualExpensesVal) || 0) / 12)) + "/mo", color: "#38bdf8" },
+      ];
+      const cardW = (W - 60) / 4, cardH = 110, cardY = 76;
+      cards.forEach((c, i) => {
+        const x = 20 + i * (cardW + 6.5);
+        // Card bg
+        ctx.fillStyle = "#1a1d27";
+        ctx.beginPath();
+        ctx.roundRect(x, cardY, cardW, cardH, 10);
+        ctx.fill();
+        // Top accent
+        ctx.fillStyle = c.color;
+        ctx.beginPath();
+        ctx.roundRect(x, cardY, cardW, 3, [3, 3, 0, 0]);
+        ctx.fill();
+        // Label
+        ctx.fillStyle = "#64748b";
+        ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(c.label, x + 12, cardY + 24);
+        // Value
+        ctx.fillStyle = c.color;
+        ctx.font = "bold 22px sans-serif";
+        ctx.fillText(c.value, x + 12, cardY + 60);
       });
+
+      // Mini chart
+      const chartX = 20, chartY = 210, chartW = W - 40, chartH = 200;
+      ctx.fillStyle = "#1a1d27";
+      ctx.beginPath(); ctx.roundRect(chartX, chartY, chartW, chartH, 10); ctx.fill();
+
+      ctx.fillStyle = "#f1f5f9";
+      ctx.font = "bold 13px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("📈 Portfolio Growth", chartX + 14, chartY + 22);
+
+      const data = result.chartData;
+      const maxVal = Math.max(...data.map(d => d.aggressive), result.fireNumber * 1.1);
+      const padL = 60, padR = 20, padT = 40, padB = 30;
+      const pW = chartW - padL - padR, pH = chartH - padT - padB;
+
+      const px = (i) => chartX + padL + (i / (data.length - 1)) * pW;
+      const py = (v) => chartY + padT + pH - (v / maxVal) * pH;
+
+      // Grid lines
+      ctx.strokeStyle = "#1e2130"; ctx.lineWidth = 1;
+      [0.25, 0.5, 0.75, 1].forEach(t => {
+        const y = chartY + padT + pH * (1 - t);
+        ctx.beginPath(); ctx.moveTo(chartX + padL, y); ctx.lineTo(chartX + padL + pW, y); ctx.stroke();
+        ctx.fillStyle = "#64748b"; ctx.font = "10px sans-serif"; ctx.textAlign = "right";
+        const v = maxVal * t;
+        ctx.fillText(v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : `$${(v/1000).toFixed(0)}k`, chartX + padL - 4, y + 3);
+      });
+
+      // FIRE reference line
+      ctx.strokeStyle = "#f97316"; ctx.lineWidth = 1.5; ctx.setLineDash([6, 3]);
+      const fireY = py(result.fireNumber);
+      ctx.beginPath(); ctx.moveTo(chartX + padL, fireY); ctx.lineTo(chartX + padL + pW, fireY); ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw lines
+      const lines = [
+        { key: "aggressive", color: "#10b981", width: 2, dash: [] },
+        { key: "portfolio", color: "#f97316", width: 3, dash: [] },
+        { key: "conservative", color: "#f87171", width: 2, dash: [4, 2] },
+      ];
+      lines.forEach(({ key, color, width, dash }) => {
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+        ctx.beginPath();
+        data.forEach((d, i) => {
+          i === 0 ? ctx.moveTo(px(i), py(d[key])) : ctx.lineTo(px(i), py(d[key]));
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+
+      // X axis labels
+      ctx.fillStyle = "#64748b"; ctx.font = "10px sans-serif"; ctx.textAlign = "center";
+      const step = Math.ceil(data.length / 6);
+      data.forEach((d, i) => {
+        if (i % step === 0) ctx.fillText(d.age, px(i), chartY + padT + pH + 16);
+      });
+
+      // Legend
+      const legendItems = [
+        { label: "Aggressive", color: "#10b981" },
+        { label: "Base Case", color: "#f97316" },
+        { label: "Conservative", color: "#f87171" },
+        { label: `FIRE: ${fmt(result.fireNumber)}`, color: "#f97316", dashed: true },
+      ];
+      let lx = chartX + padL;
+      legendItems.forEach(({ label, color, dashed }) => {
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
+        if (dashed) ctx.setLineDash([5, 3]);
+        ctx.beginPath(); ctx.moveTo(lx, chartY + chartH - 8); ctx.lineTo(lx + 20, chartY + chartH - 8); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = color; ctx.font = "10px sans-serif"; ctx.textAlign = "left";
+        ctx.fillText(label, lx + 24, chartY + chartH - 4);
+        lx += ctx.measureText(label).width + 50;
+      });
+
+      // Download
       const link = document.createElement("a");
       link.download = "my-fire-results.png";
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (e) {
-      console.error(e);
+      console.error("Save image error:", e);
     }
     setSaving(false);
   };

@@ -7,24 +7,21 @@ import {
 const fmt = (n) => n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`;
 
 const style = document.createElement("style");
-style.textContent = `input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; }`;
+style.textContent = `input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; } input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 4px; outline: none; cursor: pointer; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #f97316; cursor: pointer; box-shadow: 0 0 6px rgba(249,115,22,0.5); }`;
 document.head.appendChild(style);
 
 const dark = {
   bg: "#0f1117", card: "#1a1d27", border: "#2a2d3a", text: "#f1f5f9",
-  muted: "#64748b", orange: "#f97316", orangeGlow: "rgba(249,115,22,0.15)",
-  green: "#10b981", purple: "#818cf8", red: "#f87171", blue: "#38bdf8",
+  muted: "#64748b", orange: "#f97316", green: "#10b981", purple: "#818cf8",
+  red: "#f87171", blue: "#38bdf8",
 };
 
 const Tooltip2 = ({ text }) => {
   const [show, setShow] = useState(false);
   return (
     <span style={{ position: "relative", display: "inline-block", marginLeft: 6 }}>
-      <span
-        onMouseEnter={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: "50%", background: dark.border, color: dark.muted, fontSize: 10, fontWeight: 700, cursor: "help" }}
-      >?</span>
+      <span onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: "50%", background: dark.border, color: dark.muted, fontSize: 10, fontWeight: 700, cursor: "help" }}>?</span>
       {show && (
         <span style={{ position: "absolute", bottom: "calc(100% + 6px)", left: "50%", transform: "translateX(-50%)", background: "#2d3148", color: dark.text, fontSize: 12, padding: "8px 12px", borderRadius: 8, width: 220, zIndex: 100, border: `1px solid ${dark.border}`, lineHeight: 1.5, pointerEvents: "none", textTransform: "none", letterSpacing: "normal", fontWeight: 400 }}>
           {text}
@@ -58,10 +55,24 @@ function calcYearsToFire(savings, monthlyContrib, fireNumber, realReturn, oneOff
   return year;
 }
 
+function calcRequiredMonthlySavings(savings, fireNumber, realReturn, targetYears) {
+  const monthlyReturn = Math.pow(1 + realReturn, 1 / 12) - 1;
+  if (monthlyReturn === 0) return (fireNumber - savings) / (targetYears * 12);
+  const n = targetYears * 12;
+  const fv = fireNumber - savings * Math.pow(1 + monthlyReturn, n);
+  return fv * monthlyReturn / (Math.pow(1 + monthlyReturn, n) - 1);
+}
+
+function calcRequiredExpenses(savings, monthlyContrib, realReturn, targetYears, withdrawalRate) {
+  const monthlyReturn = Math.pow(1 + realReturn, 1 / 12) - 1;
+  let portfolio = savings;
+  for (let m = 0; m < targetYears * 12; m++) portfolio = portfolio * (1 + monthlyReturn) + monthlyContrib;
+  return portfolio * withdrawalRate;
+}
+
 function getShareUrl(params) {
   const base = window.location.href.split('?')[0];
-  const query = new URLSearchParams(params).toString();
-  return `${base}?${query}`;
+  return `${base}?${new URLSearchParams(params).toString()}`;
 }
 
 function getParamsFromUrl() {
@@ -89,6 +100,11 @@ export default function App() {
   const [monthlyIrregular, setMonthlyIrregular] = useState(url.monthlyIrregular ? Number(url.monthlyIrregular) : "");
   const [submitted, setSubmitted] = useState(!!url.age);
   const [copied, setCopied] = useState(false);
+
+  // What if sliders
+  const [whatIfContrib, setWhatIfContrib] = useState(null);
+  const [whatIfExpenses, setWhatIfExpenses] = useState(null);
+  const [whatIfRetireAge, setWhatIfRetireAge] = useState(null);
 
   const result = useMemo(() => {
     const windfallVal = Number(windfall) || 0;
@@ -118,8 +134,7 @@ export default function App() {
     let totalContributed = savingsVal, year = 0;
     const chartData = [], breakdownData = [];
     const maxYears = Math.max(withExpensesYears, baseYears) + 1;
-    const mIrr = monthlyIrregularVal;
-    const aIrr = annualIrregularVal;
+    const mIrr = monthlyIrregularVal, aIrr = annualIrregularVal;
 
     while (year < maxYears && year < 60) {
       chartData.push({ year, age: ageVal + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
@@ -137,8 +152,21 @@ export default function App() {
     chartData.push({ year, age: ageVal + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
     breakdownData.push({ year, age: ageVal + year, contributions: Math.round(totalContributed), growth: Math.max(0, Math.round(portfolio - totalContributed)) });
 
-    return { fireNumber, yearsToFire: baseYears, fireAge: ageVal + baseYears, withExpensesYears, withExpensesAge: ageVal + withExpensesYears, impactYears, chartData, breakdownData };
+    return { fireNumber, yearsToFire: baseYears, fireAge: ageVal + baseYears, withExpensesYears, withExpensesAge: ageVal + withExpensesYears, impactYears, chartData, breakdownData, ageVal, savingsVal, monthlyContribVal, annualExpensesVal, returnRateVal, inflationRateVal, withdrawalRateVal, realReturn };
   }, [age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular]);
+
+  // Initialise sliders once results are available
+  const contribSlider = whatIfContrib ?? result.monthlyContribVal;
+  const expensesSlider = whatIfExpenses ?? result.annualExpensesVal;
+  const retireAgeSlider = whatIfRetireAge ?? result.fireAge;
+
+  const whatIfYears = calcYearsToFire(result.savingsVal, contribSlider, result.annualExpensesVal / (result.withdrawalRateVal / 100), result.realReturn);
+  const whatIfFireAge = result.ageVal + whatIfYears;
+
+  const reqSavings = calcRequiredMonthlySavings(result.savingsVal, result.fireNumber, result.realReturn, Math.max(1, retireAgeSlider - result.ageVal));
+  const reqExpenses = calcRequiredExpenses(result.savingsVal, result.monthlyContribVal, result.realReturn, Math.max(1, retireAgeSlider - result.ageVal), result.withdrawalRateVal / 100);
+
+  const whatIfExpFireAge = result.ageVal + calcYearsToFire(result.savingsVal, result.monthlyContribVal, expensesSlider / (result.withdrawalRateVal / 100), result.realReturn);
 
   const handleShare = () => {
     const u = getShareUrl({ age, savings, mc: monthlyContrib, ae: annualExpenses, rr: returnRate, ir: inflationRate, wr: withdrawalRate, wf: windfall, oo: oneOff, ai: annualIrregular, mi: monthlyIrregular });
@@ -148,7 +176,6 @@ export default function App() {
   };
 
   const inputBase = { width: "100%", padding: "10px 12px", borderRadius: 8, border: `1.5px solid ${dark.border}`, fontSize: 15, outline: "none", boxSizing: "border-box", background: "#0f1117", color: dark.text, MozAppearance: "textfield", WebkitAppearance: "none" };
-
   const hasIrregulars = Number(windfall) > 0 || Number(oneOff) > 0 || Number(annualIrregular) > 0 || Number(monthlyIrregular) > 0;
 
   const fields = [
@@ -169,9 +196,13 @@ export default function App() {
   ];
 
   const milestones = [
-    { label: "25x (Lean FIRE)", value: annualExpenses * 25, color: dark.blue },
-    { label: "50x (Fat FIRE)", value: annualExpenses * 50, color: dark.purple },
+    { label: "25x (Lean FIRE)", value: result.annualExpensesVal * 25, color: dark.blue },
+    { label: "50x (Fat FIRE)", value: result.annualExpensesVal * 50, color: dark.purple },
   ];
+
+  const sliderTrack = (val, min, max, color) => ({
+    background: `linear-gradient(to right, ${color} 0%, ${color} ${((val - min) / (max - min)) * 100}%, #2a2d3a ${((val - min) / (max - min)) * 100}%, #2a2d3a 100%)`,
+  });
 
   return (
     <div style={{ minHeight: "100vh", background: dark.bg, fontFamily: "'Inter', sans-serif", color: dark.text }}>
@@ -183,12 +214,11 @@ export default function App() {
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "40px 20px" }}>
         <div style={{ textAlign: "center", marginBottom: 40 }}>
-          <h1 style={{ fontSize: 36, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
-            When can you <span style={{ color: dark.orange }}>retire early?</span>
-          </h1>
+          <h1 style={{ fontSize: 36, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>When can you <span style={{ color: dark.orange }}>retire early?</span></h1>
           <p style={{ color: dark.muted, marginTop: 10, fontSize: 16 }}>Enter your numbers and get your FIRE date instantly.</p>
         </div>
 
+        {/* Core Inputs */}
         <div style={{ background: dark.card, borderRadius: 16, padding: 28, border: `1px solid ${dark.border}`, marginBottom: 16 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 14, color: dark.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Core Details</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
@@ -207,6 +237,7 @@ export default function App() {
           </div>
         </div>
 
+        {/* Irregular Expenses */}
         <div style={{ background: dark.card, borderRadius: 16, padding: 28, border: `1px solid ${dark.border}`, marginBottom: 28 }}>
           <h3 style={{ margin: "0 0 4px", fontSize: 14, color: dark.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Irregular Expenses & Windfalls</h3>
           <p style={{ margin: "0 0 20px", fontSize: 13, color: dark.muted }}>See how these impact your FIRE date separately</p>
@@ -226,12 +257,13 @@ export default function App() {
           </div>
         </div>
 
-        <button onClick={() => setSubmitted(true)} style={{ width: "100%", padding: 14, background: dark.orange, color: "#fff", fontWeight: 700, fontSize: 16, border: "none", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 24px rgba(249,115,22,0.4)`, marginBottom: 28 }}>
+        <button onClick={() => { setSubmitted(true); setWhatIfContrib(null); setWhatIfExpenses(null); setWhatIfRetireAge(null); }} style={{ width: "100%", padding: 14, background: dark.orange, color: "#fff", fontWeight: 700, fontSize: 16, border: "none", borderRadius: 10, cursor: "pointer", boxShadow: `0 0 24px rgba(249,115,22,0.4)`, marginBottom: 28 }}>
           Calculate My FIRE Date →
         </button>
 
         {submitted && (
           <>
+            {/* Summary Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 16 }}>
               {[
                 { label: "FIRE Date", value: `Age ${result.fireAge}`, sub: `In ${result.yearsToFire} years`, color: dark.orange },
@@ -247,6 +279,7 @@ export default function App() {
               ))}
             </div>
 
+            {/* Impact Card */}
             {hasIrregulars && (
               <div style={{ background: dark.card, borderRadius: 14, padding: "20px 24px", border: `1px solid ${dark.border}`, borderLeft: `4px solid ${result.impactYears > 0 ? dark.red : dark.green}`, marginBottom: 16 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: dark.text, margin: "0 0 12px" }}>💸 Impact of Irregular Expenses & Windfalls</p>
@@ -269,12 +302,14 @@ export default function App() {
               </div>
             )}
 
+            {/* Share */}
             <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
               <button onClick={handleShare} style={{ padding: "10px 20px", background: copied ? dark.green : dark.card, color: copied ? "#fff" : dark.text, border: `1px solid ${copied ? dark.green : dark.border}`, borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
                 {copied ? "✅ Link Copied!" : "🔗 Share My Results"}
               </button>
             </div>
 
+            {/* Charts */}
             <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}`, marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 4px 16px", fontWeight: 700, fontSize: 16 }}>📈 Portfolio Growth</h3>
               <p style={{ margin: "0 0 20px 16px", fontSize: 13, color: dark.muted }}>Base, conservative & aggressive scenarios with FIRE milestones</p>
@@ -295,7 +330,7 @@ export default function App() {
               </ResponsiveContainer>
             </div>
 
-            <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}` }}>
+            <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}`, marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 4px 16px", fontWeight: 700, fontSize: 16 }}>💰 Contributions vs. Investment Growth</h3>
               <p style={{ margin: "0 0 20px 16px", fontSize: 13, color: dark.muted }}>See how much of your wealth comes from saving vs. the market</p>
               <ResponsiveContainer width="100%" height={300}>
@@ -319,6 +354,68 @@ export default function App() {
                   <Area type="monotone" dataKey="growth" name="Market Growth" stroke={dark.green} fill="url(#gGrowth)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* What If Section */}
+            <div style={{ background: dark.card, borderRadius: 16, padding: 28, border: `1px solid ${dark.border}`, marginBottom: 20 }}>
+              <h3 style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 16 }}>🎯 What If? Explorer</h3>
+              <p style={{ margin: "0 0 28px", fontSize: 13, color: dark.muted }}>Drag the sliders to explore different scenarios instantly</p>
+
+              {/* Slider 1: Monthly Savings */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: dark.text }}>💰 What if I save <span style={{ color: dark.orange }}>{fmt(contribSlider)}/mo</span>?</span>
+                  <span style={{ fontSize: 13, color: whatIfFireAge < result.fireAge ? dark.green : whatIfFireAge > result.fireAge ? dark.red : dark.muted, fontWeight: 700 }}>
+                    → FIRE at Age {whatIfFireAge} {whatIfFireAge < result.fireAge ? `(${result.fireAge - whatIfFireAge} yrs earlier 🎉)` : whatIfFireAge > result.fireAge ? `(${whatIfFireAge - result.fireAge} yrs later)` : "(no change)"}
+                  </span>
+                </div>
+                <input type="range" min={0} max={20000} step={100} value={contribSlider}
+                  onChange={(e) => setWhatIfContrib(Number(e.target.value))}
+                  style={{ width: "100%", ...sliderTrack(contribSlider, 0, 20000, dark.orange) }} />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: dark.muted, marginTop: 4 }}>
+                  <span>$0</span><span>$20,000/mo</span>
+                </div>
+              </div>
+
+              {/* Slider 2: Annual Expenses */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: dark.text }}>🛍️ What if I spend <span style={{ color: dark.purple }}>{fmt(expensesSlider)}/yr</span> in retirement?</span>
+                  <span style={{ fontSize: 13, color: whatIfExpFireAge < result.fireAge ? dark.green : whatIfExpFireAge > result.fireAge ? dark.red : dark.muted, fontWeight: 700 }}>
+                    → FIRE at Age {whatIfExpFireAge} {whatIfExpFireAge < result.fireAge ? `(${result.fireAge - whatIfExpFireAge} yrs earlier 🎉)` : whatIfExpFireAge > result.fireAge ? `(${whatIfExpFireAge - result.fireAge} yrs later)` : "(no change)"}
+                  </span>
+                </div>
+                <input type="range" min={10000} max={200000} step={1000} value={expensesSlider}
+                  onChange={(e) => setWhatIfExpenses(Number(e.target.value))}
+                  style={{ width: "100%", ...sliderTrack(expensesSlider, 10000, 200000, dark.purple) }} />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: dark.muted, marginTop: 4 }}>
+                  <span>$10k/yr</span><span>$200k/yr</span>
+                </div>
+              </div>
+
+              {/* Slider 3: Target Retire Age */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: dark.text }}>🎯 What if I want to retire at <span style={{ color: dark.green }}>Age {retireAgeSlider}</span>?</span>
+                  <span style={{ fontSize: 13, color: dark.muted, fontWeight: 700 }}>In {Math.max(0, retireAgeSlider - result.ageVal)} years</span>
+                </div>
+                <input type="range" min={result.ageVal + 1} max={75} step={1} value={retireAgeSlider}
+                  onChange={(e) => setWhatIfRetireAge(Number(e.target.value))}
+                  style={{ width: "100%", ...sliderTrack(retireAgeSlider, result.ageVal + 1, 75, dark.green) }} />
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: dark.muted, marginTop: 4 }}>
+                  <span>Age {result.ageVal + 1}</span><span>Age 75</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+                  <div style={{ background: "#0f1117", borderRadius: 10, padding: "14px 16px", border: `1px solid ${dark.border}` }}>
+                    <p style={{ fontSize: 11, color: dark.muted, margin: "0 0 4px", textTransform: "uppercase" }}>Monthly savings needed</p>
+                    <p style={{ fontSize: 20, fontWeight: 800, color: dark.green, margin: 0 }}>{reqSavings > 0 ? fmt(reqSavings) + "/mo" : "Already there! 🎉"}</p>
+                  </div>
+                  <div style={{ background: "#0f1117", borderRadius: 10, padding: "14px 16px", border: `1px solid ${dark.border}` }}>
+                    <p style={{ fontSize: 11, color: dark.muted, margin: "0 0 4px", textTransform: "uppercase" }}>Max annual expenses</p>
+                    <p style={{ fontSize: 20, fontWeight: 800, color: dark.purple, margin: 0 }}>{fmt(reqExpenses)}/yr</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: 20, textAlign: "center", color: dark.muted, fontSize: 13 }}>

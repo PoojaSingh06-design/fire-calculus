@@ -79,56 +79,6 @@ const COUNTRIES = {
       "FHSA: first home buyers can contribute $8,000/yr tax-free toward a home purchase",
     ],
   },
-  DE: {
-    flag: "🇩🇪", name: "Germany", currency: "€", code: "EUR",
-    defaults: { annualExpenses: 30000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
-    tips: [
-      "German statutory pension (GRV) provides a base — check your Rentenauskunft",
-      "ETF investing via a depot is the most popular FIRE vehicle in Germany",
-      "Freistellungsauftrag: first €1,000 in capital gains is tax-free per person",
-      "Riester-Rente & Rürup-Rente offer state subsidies for retirement savings",
-    ],
-  },
-  FR: {
-    flag: "🇫🇷", name: "France", currency: "€", code: "EUR",
-    defaults: { annualExpenses: 28000, returnRate: 6, inflationRate: 2.5, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
-    tips: [
-      "PEA (Plan d'Épargne en Actions) — tax-free gains after 5 years, capped at €150,000",
-      "Assurance-vie is the most popular long-term savings vehicle in France",
-      "French state pension (retraite) is generous — factor it into your FIRE number",
-      "SCPI (real estate investment trusts) are popular for passive income in France",
-    ],
-  },
-  ES: {
-    flag: "🇪🇸", name: "Spain", currency: "€", code: "EUR",
-    defaults: { annualExpenses: 22000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 800, savings: 15000 },
-    tips: [
-      "Spain has a generous public pension (jubilación) — check your projected amount at seg-social.es",
-      "Index funds via a broker like MyInvestor or Indexa Capital are popular for FIRE in Spain",
-      "Non-lucrative visa makes Spain a popular FIRE destination for non-EU nationals",
-      "Beckham Law can reduce taxes for new residents — worth exploring if relocating",
-    ],
-  },
-  NL: {
-    flag: "🇳🇱", name: "Netherlands", currency: "€", code: "EUR",
-    defaults: { annualExpenses: 32000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1200, savings: 25000 },
-    tips: [
-      "Box 3 wealth tax applies to savings & investments above €57,000 — factor this in",
-      "AOW (state pension) starts at 67 and provides a meaningful base income",
-      "Bruto/netto salary gap is large in NL — optimise pension contributions via employer",
-      "VWCE or LifeStrategy ETFs via DEGIRO or Saxo are the most popular FIRE vehicles",
-    ],
-  },
-  DE: {
-    flag: "🇩🇪", name: "Germany", currency: "€", code: "EUR",
-    defaults: { annualExpenses: 30000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
-    tips: [
-      "German statutory pension (GRV) provides a base — check your Rentenauskunft",
-      "ETF investing via a depot is the most popular FIRE vehicle in Germany",
-      "Freistellungsauftrag: first €1,000 in capital gains is tax-free per person",
-      "Riester-Rente & Rürup-Rente offer state subsidies for retirement savings",
-    ],
-  },
   EU: {
     flag: "🇪🇺", name: "Europe", currency: "€", code: "EUR",
     defaults: { annualExpenses: 28000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 900, savings: 15000 },

@@ -27,7 +27,132 @@ function trackEvent(eventName, params = {}) {
 }
 // ─────────────────────────────────────────────────────────────────
 
-const fmt = (n) => n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`;
+// ── Country / Currency Config ─────────────────────────────────────
+const COUNTRIES = {
+  US: {
+    flag: "🇺🇸", name: "United States", currency: "$", code: "USD",
+    defaults: { annualExpenses: 50000, returnRate: 7, inflationRate: 3, withdrawalRate: 4, monthlyContrib: 1500, savings: 25000 },
+    tips: [
+      "Max out your 401(k) — 2024 limit is $23,000 (+$7,500 catch-up over 50)",
+      "HSA triple tax advantage: contribute $4,150 (individual) or $8,300 (family) in 2024",
+      "Roth IRA limit is $7,000/yr — ideal for tax-free retirement withdrawals",
+      "The 4% rule is based on US market data — a safe starting point for most",
+    ],
+  },
+  UK: {
+    flag: "🇬🇧", name: "United Kingdom", currency: "£", code: "GBP",
+    defaults: { annualExpenses: 30000, returnRate: 6.5, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
+    tips: [
+      "ISA allowance is £20,000/yr — use it fully for tax-free growth",
+      "SIPP (Self-Invested Personal Pension) gives 20–45% tax relief on contributions",
+      "State Pension is ~£11,500/yr — factor this into your withdrawal needs",
+      "Bed & ISA: transfer existing investments into an ISA to shelter future gains",
+    ],
+  },
+  IN: {
+    flag: "🇮🇳", name: "India", currency: "₹", code: "INR",
+    defaults: { annualExpenses: 600000, returnRate: 10, inflationRate: 6, withdrawalRate: 3.5, monthlyContrib: 30000, savings: 500000 },
+    tips: [
+      "PPF (Public Provident Fund) offers tax-free returns at ~7.1% — max ₹1.5L/yr",
+      "NPS (National Pension System) gives extra ₹50,000 deduction under 80CCD(1B)",
+      "ELSS mutual funds offer 3-year lock-in with Section 80C tax deduction",
+      "India's higher inflation (~6%) means real returns are lower — plan conservatively",
+    ],
+  },
+  AU: {
+    flag: "🇦🇺", name: "Australia", currency: "A$", code: "AUD",
+    defaults: { annualExpenses: 55000, returnRate: 7, inflationRate: 3, withdrawalRate: 4, monthlyContrib: 2000, savings: 40000 },
+    tips: [
+      "Superannuation is compulsory at 11% of salary — check your balance regularly",
+      "Concessional (pre-tax) super contributions capped at $27,500/yr",
+      "Non-concessional (after-tax) super contributions capped at $110,000/yr",
+      "You can access super at preservation age (60) tax-free after retirement",
+    ],
+  },
+  CA: {
+    flag: "🇨🇦", name: "Canada", currency: "C$", code: "CAD",
+    defaults: { annualExpenses: 50000, returnRate: 6.5, inflationRate: 3, withdrawalRate: 4, monthlyContrib: 1500, savings: 30000 },
+    tips: [
+      "TFSA (Tax-Free Savings Account) — 2024 contribution room is $7,000",
+      "RRSP limit is 18% of prior year income, up to $31,560 for 2024",
+      "CPP & OAS provide a base income in retirement — factor this into your plan",
+      "FHSA: first home buyers can contribute $8,000/yr tax-free toward a home purchase",
+    ],
+  },
+  DE: {
+    flag: "🇩🇪", name: "Germany", currency: "€", code: "EUR",
+    defaults: { annualExpenses: 30000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
+    tips: [
+      "German statutory pension (GRV) provides a base — check your Rentenauskunft",
+      "ETF investing via a depot is the most popular FIRE vehicle in Germany",
+      "Freistellungsauftrag: first €1,000 in capital gains is tax-free per person",
+      "Riester-Rente & Rürup-Rente offer state subsidies for retirement savings",
+    ],
+  },
+  FR: {
+    flag: "🇫🇷", name: "France", currency: "€", code: "EUR",
+    defaults: { annualExpenses: 28000, returnRate: 6, inflationRate: 2.5, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
+    tips: [
+      "PEA (Plan d'Épargne en Actions) — tax-free gains after 5 years, capped at €150,000",
+      "Assurance-vie is the most popular long-term savings vehicle in France",
+      "French state pension (retraite) is generous — factor it into your FIRE number",
+      "SCPI (real estate investment trusts) are popular for passive income in France",
+    ],
+  },
+  ES: {
+    flag: "🇪🇸", name: "Spain", currency: "€", code: "EUR",
+    defaults: { annualExpenses: 22000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 800, savings: 15000 },
+    tips: [
+      "Spain has a generous public pension (jubilación) — check your projected amount at seg-social.es",
+      "Index funds via a broker like MyInvestor or Indexa Capital are popular for FIRE in Spain",
+      "Non-lucrative visa makes Spain a popular FIRE destination for non-EU nationals",
+      "Beckham Law can reduce taxes for new residents — worth exploring if relocating",
+    ],
+  },
+  NL: {
+    flag: "🇳🇱", name: "Netherlands", currency: "€", code: "EUR",
+    defaults: { annualExpenses: 32000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1200, savings: 25000 },
+    tips: [
+      "Box 3 wealth tax applies to savings & investments above €57,000 — factor this in",
+      "AOW (state pension) starts at 67 and provides a meaningful base income",
+      "Bruto/netto salary gap is large in NL — optimise pension contributions via employer",
+      "VWCE or LifeStrategy ETFs via DEGIRO or Saxo are the most popular FIRE vehicles",
+    ],
+  },
+  DE: {
+    flag: "🇩🇪", name: "Germany", currency: "€", code: "EUR",
+    defaults: { annualExpenses: 30000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
+    tips: [
+      "German statutory pension (GRV) provides a base — check your Rentenauskunft",
+      "ETF investing via a depot is the most popular FIRE vehicle in Germany",
+      "Freistellungsauftrag: first €1,000 in capital gains is tax-free per person",
+      "Riester-Rente & Rürup-Rente offer state subsidies for retirement savings",
+    ],
+  },
+  EU: {
+    flag: "🇪🇺", name: "Europe", currency: "€", code: "EUR",
+    defaults: { annualExpenses: 28000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 900, savings: 15000 },
+    tips: [
+      "Tax rules vary widely by country — check your local pension and ISA equivalents",
+      "Low-cost ETFs (e.g. VWCE) are the most popular FIRE vehicle across Europe",
+      "Many EU countries have generous state pensions — factor these into your plan",
+      "Geo-arbitrage within the EU (e.g. moving to Portugal or Spain) can reduce costs significantly",
+    ],
+  },
+};
+
+const DEFAULT_COUNTRY = "US";
+
+function fmtCurrency(n, symbol) {
+  if (n >= 1e6) return `${symbol}${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${symbol}${Math.round(n).toLocaleString()}`;
+  return `${symbol}${Math.round(n)}`;
+}
+// Global fmt used by components outside App — sym is injected via context
+let _globalSym = "$";
+const fmt = (n) => fmtCurrency(n, _globalSym);
+// ─────────────────────────────────────────────────────────────────
+
 
 const dark = {
   bg: "#0f1117", card: "#1a1d27", border: "#2a2d3a", text: "#f1f5f9",
@@ -92,7 +217,7 @@ function calcRequiredExpenses(savings, monthlyContrib, realReturn, targetYears, 
 function getParamsFromUrl() {
   const p = new URLSearchParams(window.location.search);
   return {
-    age: p.get("age"), savings: p.get("savings"), monthlyContrib: p.get("mc"),
+    age: p.get("age"), savings: p.get("savings"), monthlyContrib: p.get("mc"), country: p.get("country"), statePension: p.get("sp"), taxRate: p.get("tr"),
     annualExpenses: p.get("ae"), returnRate: p.get("rr"), inflationRate: p.get("ir"),
     withdrawalRate: p.get("wr"), windfall: p.get("wf"), oneOff: p.get("oo"),
     annualIrregular: p.get("ai"), monthlyIrregular: p.get("mi"),
@@ -102,10 +227,10 @@ function getParamsFromUrl() {
 function buildShareUrl(vals) {
   const base = window.location.href.split("?")[0];
   const p = new URLSearchParams({
-    age: vals.age, savings: vals.savings, mc: vals.monthlyContrib,
+    age: vals.age, savings: vals.savings, mc: vals.monthlyContrib, country: vals.country,
     ae: vals.annualExpenses, rr: vals.returnRate, ir: vals.inflationRate,
     wr: vals.withdrawalRate, wf: vals.windfall || 0, oo: vals.oneOff || 0,
-    ai: vals.annualIrregular || 0, mi: vals.monthlyIrregular || 0,
+    ai: vals.annualIrregular || 0, mi: vals.monthlyIrregular || 0, sp: vals.statePension || 0, tr: vals.taxRate || 0,
   });
   return `${base}?${p.toString()}`;
 }
@@ -123,6 +248,12 @@ export default function App() {
   const [oneOff, setOneOff] = useState(url.oneOff ? Number(url.oneOff) : "");
   const [annualIrregular, setAnnualIrregular] = useState(url.annualIrregular ? Number(url.annualIrregular) : "");
   const [monthlyIrregular, setMonthlyIrregular] = useState(url.monthlyIrregular ? Number(url.monthlyIrregular) : "");
+  const [statePension, setStatePension] = useState(url.statePension ? Number(url.statePension) : "");
+  const [taxRate, setTaxRate] = useState(url.taxRate ? Number(url.taxRate) : "");
+  const [country, setCountry] = useState(url.country || DEFAULT_COUNTRY);
+  const countryData = COUNTRIES[country] || COUNTRIES[DEFAULT_COUNTRY];
+  const sym = countryData.currency;
+  _globalSym = sym; // keep global in sync for ChartTooltip
   const [submitted, setSubmitted] = useState(!!url.age);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -148,7 +279,11 @@ export default function App() {
     const inflationRateVal = Number(inflationRate) || 3;
     const withdrawalRateVal = Number(withdrawalRate) || 4;
 
-    const fireNumber = annualExpensesVal / (withdrawalRateVal / 100);
+    const statePensionVal = Number(statePension) || 0;
+    const taxRateVal = Math.min(Number(taxRate) || 0, 99) / 100;
+    const netExpenses = Math.max(0, annualExpensesVal - statePensionVal);
+    const grossExpenses = taxRateVal > 0 ? netExpenses / (1 - taxRateVal) : netExpenses;
+    const fireNumber = grossExpenses / (withdrawalRateVal / 100);
     const realReturn = (1 + returnRateVal / 100) / (1 + inflationRateVal / 100) - 1;
     const monthlyReturn = Math.pow(1 + realReturn, 1 / 12) - 1;
     const cMonthlyReturn = Math.pow(1 + Math.max(0, realReturn - 0.01), 1 / 12) - 1;
@@ -181,8 +316,8 @@ export default function App() {
     chartData.push({ year, age: ageVal + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
     breakdownData.push({ year, age: ageVal + year, contributions: Math.round(totalContributed), growth: Math.max(0, Math.round(portfolio - totalContributed)) });
 
-    return { fireNumber, yearsToFire: baseYears, fireAge: ageVal + baseYears, withExpensesYears, withExpensesAge: ageVal + withExpensesYears, impactYears, chartData, breakdownData, ageVal, savingsVal, monthlyContribVal, annualExpensesVal, returnRateVal, inflationRateVal, withdrawalRateVal, realReturn };
-  }, [age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular]);
+    return { fireNumber, yearsToFire: baseYears, fireAge: ageVal + baseYears, withExpensesYears, withExpensesAge: ageVal + withExpensesYears, impactYears, chartData, breakdownData, ageVal, savingsVal, monthlyContribVal, annualExpensesVal, returnRateVal, inflationRateVal, withdrawalRateVal, realReturn, statePensionVal, netExpenses, taxRateVal, grossExpenses };
+  }, [age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular, statePension, taxRate]);
 
   const contribSlider = whatIfContrib ?? result.monthlyContribVal;
   const expensesSlider = whatIfExpenses ?? result.annualExpensesVal;
@@ -195,6 +330,19 @@ export default function App() {
   const reqExpenses = calcRequiredExpenses(result.savingsVal, result.monthlyContribVal, result.realReturn, Math.max(1, retireAgeSlider - result.ageVal), result.withdrawalRateVal / 100);
 
   const whatIfExpFireAge = result.ageVal + calcYearsToFire(result.savingsVal, result.monthlyContribVal, expensesSlider / (result.withdrawalRateVal / 100), result.realReturn);
+
+
+  const handleCountryChange = (newCountry) => {
+    setCountry(newCountry);
+    const d = COUNTRIES[newCountry].defaults;
+    if (!savings) setSavings(d.savings);
+    if (!monthlyContrib) setMonthlyContrib(d.monthlyContrib);
+    if (!annualExpenses) setAnnualExpenses(d.annualExpenses);
+    if (!returnRate) setReturnRate(d.returnRate);
+    if (!inflationRate) setInflationRate(d.inflationRate);
+    if (!withdrawalRate) setWithdrawalRate(d.withdrawalRate);
+    trackEvent("country_changed", { country: newCountry });
+  };
 
   const handleSaveImage = () => {
     if (saving) return;
@@ -291,7 +439,7 @@ export default function App() {
         ctx.beginPath(); ctx.moveTo(chartX + padL, y); ctx.lineTo(chartX + padL + pW, y); ctx.stroke();
         ctx.fillStyle = "#64748b"; ctx.font = "10px sans-serif"; ctx.textAlign = "right";
         const v = maxVal * t;
-        ctx.fillText(v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : `$${(v/1000).toFixed(0)}k`, chartX + padL - 4, y + 3);
+        ctx.fillText(v >= 1e6 ? `${sym}${(v/1e6).toFixed(1)}M` : `${sym}${(v/1000).toFixed(0)}k`, chartX + padL - 4, y + 3);
       });
 
       // FIRE reference line
@@ -363,19 +511,21 @@ export default function App() {
 
   const fields = [
     { label: "Current Age", tooltip: "Your age today. This determines how many years you have to reach FIRE.", value: age, set: setAge, suffix: "yrs", min: 18, max: 70 },
-    { label: "Current Savings", tooltip: "Total investable assets you have right now — e.g. 401k, index funds, brokerage accounts. Don't include your home value.", value: savings, set: setSavings, prefix: "$", min: 0, max: 5000000, step: 1000 },
-    { label: "Monthly Contribution", tooltip: "How much you invest every month on top of your current savings. Include employer 401k match if applicable.", value: monthlyContrib, set: setMonthlyContrib, prefix: "$", suffix: "/mo", min: 0, max: 50000, step: 100 },
-    { label: "Annual Expenses (Retirement)", tooltip: "How much you plan to spend per year in retirement, in today's dollars. This is the most important number — it directly sets your FIRE target.", value: annualExpenses, set: setAnnualExpenses, prefix: "$", suffix: "/yr", min: 10000, max: 500000, step: 1000 },
+    { label: "Current Savings", tooltip: "Total investable assets you have right now — e.g. 401k, index funds, brokerage accounts. Don't include your home value.", value: savings, set: setSavings, prefix: sym, min: 0, max: 5000000, step: 1000 },
+    { label: "Monthly Contribution", tooltip: "How much you invest every month on top of your current savings. Include employer 401k match if applicable.", value: monthlyContrib, set: setMonthlyContrib, prefix: sym, suffix: "/mo", min: 0, max: 50000, step: 100 },
+    { label: "Annual Expenses (Retirement)", tooltip: "How much you plan to spend per year in retirement, in today's dollars. This is the most important number — it directly sets your FIRE target.", value: annualExpenses, set: setAnnualExpenses, prefix: sym, suffix: "/yr", min: 10000, max: 500000, step: 1000 },
     { label: "Expected Annual Return", tooltip: "The average yearly return on your investments before inflation. The S&P 500 has historically returned ~10% annually. 7% is a conservative estimate.", value: returnRate, set: setReturnRate, suffix: "%", min: 1, max: 15, step: 0.5 },
     { label: "Inflation Rate", tooltip: "The average annual rise in prices. Historically ~3% in the US. This reduces the real value of your returns over time.", value: inflationRate, set: setInflationRate, suffix: "%", min: 0, max: 10, step: 0.5 },
     { label: "Safe Withdrawal Rate", tooltip: "The % of your portfolio you withdraw each year in retirement. The classic 4% rule means your money should last 30+ years. Lower = more conservative.", value: withdrawalRate, set: setWithdrawalRate, suffix: "%", min: 2, max: 6, step: 0.5 },
+    { label: "Expected Gov. Pension / Social Security", tooltip: "Annual income you expect from state pension, social security, or similar government schemes (e.g. UK State Pension ~£11,500/yr, US Social Security, AU Age Pension). This reduces the amount your portfolio needs to cover — lowering your FIRE number.", value: statePension, set: setStatePension, prefix: sym, suffix: "/yr", min: 0, max: 100000, step: 500 },
+    { label: "Effective Tax Rate on Withdrawals", tooltip: "The average tax rate you expect to pay on your portfolio withdrawals in retirement. E.g. 20% for UK basic rate taxpayer on pension income, 15% for Australian super, 26% for Germany's Abgeltungsteuer. Leave at 0 if your withdrawals are tax-free (e.g. Roth IRA, ISA). This grosses up your required withdrawals so your FIRE number reflects real take-home spending.", value: taxRate, set: setTaxRate, suffix: "%", min: 0, max: 60, step: 1 },
   ];
 
   const irregularFields = [
-    { label: "Expected Windfall / Inheritance", tooltip: "A one-time lump sum you expect to receive, like an inheritance or bonus. This is added directly to your savings today.", value: windfall, set: setWindfall, prefix: "$", step: 1000 },
-    { label: "One-off Big Expense", tooltip: "A large one-time cost like a wedding, car, or house deposit. This is deducted from your portfolio once immediately.", value: oneOff, set: setOneOff, prefix: "$", step: 1000 },
-    { label: "Annual Irregular Expenses", tooltip: "Costs that happen once a year but aren't in your regular budget — e.g. holidays, home repairs, insurance. These reduce your portfolio each year.", value: annualIrregular, set: setAnnualIrregular, prefix: "$", suffix: "/yr", step: 500 },
-    { label: "Monthly Irregular Expenses", tooltip: "Extra monthly costs outside your core budget — e.g. dining out, subscriptions, hobbies. These reduce your monthly contributions.", value: monthlyIrregular, set: setMonthlyIrregular, prefix: "$", suffix: "/mo", step: 100 },
+    { label: "Expected Windfall / Inheritance", tooltip: "A one-time lump sum you expect to receive, like an inheritance or bonus. This is added directly to your savings today.", value: windfall, set: setWindfall, prefix: sym, step: 1000 },
+    { label: "One-off Big Expense", tooltip: "A large one-time cost like a wedding, car, or house deposit. This is deducted from your portfolio once immediately.", value: oneOff, set: setOneOff, prefix: sym, step: 1000 },
+    { label: "Annual Irregular Expenses", tooltip: "Costs that happen once a year but aren't in your regular budget — e.g. holidays, home repairs, insurance. These reduce your portfolio each year.", value: annualIrregular, set: setAnnualIrregular, prefix: sym, suffix: "/yr", step: 500 },
+    { label: "Monthly Irregular Expenses", tooltip: "Extra monthly costs outside your core budget — e.g. dining out, subscriptions, hobbies. These reduce your monthly contributions.", value: monthlyIrregular, set: setMonthlyIrregular, prefix: sym, suffix: "/mo", step: 100 },
   ];
 
   const milestones = [
@@ -407,6 +557,19 @@ export default function App() {
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 36, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>When can you <span style={{ color: dark.orange }}>retire early?</span></h1>
           <p style={{ color: dark.muted, marginTop: 10, fontSize: 16 }}>Enter your numbers and get your FIRE date instantly.</p>
+        </div>
+
+        {/* Country Selector */}
+        <div style={{ background: dark.card, borderRadius: 16, padding: "20px 28px", border: `1px solid ${dark.border}`, marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 14, color: dark.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>🌍 Select Your Country</h3>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {Object.entries(COUNTRIES).map(([code, c]) => (
+              <button key={code} onClick={() => handleCountryChange(code)}
+                style={{ padding: "8px 16px", borderRadius: 8, border: `1.5px solid ${country === code ? dark.orange : dark.border}`, background: country === code ? "rgba(249,115,22,0.12)" : "#0f1117", color: country === code ? dark.orange : dark.text, fontWeight: country === code ? 700 : 400, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                {c.flag} {c.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div style={{ background: dark.card, borderRadius: 16, padding: 28, border: `1px solid ${dark.border}`, marginBottom: 16 }}>
@@ -463,7 +626,7 @@ export default function App() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 16 }}>
               {[
                 { label: "FIRE Date", value: `Age ${result.fireAge}`, sub: `In ${result.yearsToFire} years`, color: dark.orange },
-                { label: "FIRE Number", value: fmt(result.fireNumber), sub: "Portfolio needed", color: dark.green },
+                { label: "FIRE Number", value: fmt(result.fireNumber), sub: Number(statePension) > 0 && Number(taxRate) > 0 ? `After pension & ${taxRate}% tax` : Number(statePension) > 0 ? `After ${fmt(Number(statePension))}/yr pension` : Number(taxRate) > 0 ? `Incl. ${taxRate}% withdrawal tax` : "Portfolio needed", color: dark.green },
                 { label: "Years to FIRE", value: `${result.yearsToFire} yrs`, sub: result.yearsToFire < 20 ? "🔥 Retiring early!" : "On track", color: dark.purple },
                 { label: "Monthly Budget", value: fmt(Number(annualExpenses) / 12 || 0), sub: "In today's dollars", color: dark.blue },
               ].map(({ label, value, sub, color }) => (
@@ -497,6 +660,19 @@ export default function App() {
               </div>
             )}
 
+            {/* Country FIRE Tips */}
+            <div style={{ background: dark.card, borderRadius: 14, padding: "20px 24px", border: `1px solid ${dark.border}`, borderLeft: `4px solid ${dark.blue}`, marginBottom: 16 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: dark.text, margin: "0 0 12px" }}>{countryData.flag} {countryData.name} FIRE Tips</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {countryData.tips.map((tip, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ color: dark.blue, fontWeight: 700, fontSize: 13, minWidth: 18 }}>→</span>
+                    <span style={{ fontSize: 13, color: dark.muted, lineHeight: 1.5 }}>{tip}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
               <button onClick={handleSaveImage} disabled={saving} style={{ padding: "10px 20px", background: saving ? dark.border : dark.orange, color: "#fff", border: "none", borderRadius: 8, cursor: saving ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 600, boxShadow: saving ? "none" : `0 0 16px rgba(249,115,22,0.3)` }}>
                 {saving ? "⏳ Saving..." : "📸 Save as Image"}
@@ -510,7 +686,7 @@ export default function App() {
                 <LineChart data={result.chartData} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e2130" />
                   <XAxis dataKey="age" stroke={dark.muted} tick={{ fontSize: 12, fill: dark.muted }} label={{ value: "Age", position: "insideBottom", offset: -10, fill: dark.muted, fontSize: 12 }} />
-                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `${sym}${(v / 1e6).toFixed(1)}M` : `${sym}${(v / 1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 16, color: dark.muted }} />
                   {milestones.map(m => <ReferenceLine key={m.label} y={m.value} stroke={m.color} strokeDasharray="5 3" />)}
@@ -546,7 +722,7 @@ export default function App() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e2130" />
                   <XAxis dataKey="age" stroke={dark.muted} tick={{ fontSize: 12, fill: dark.muted }} label={{ value: "Age", position: "insideBottom", offset: -10, fill: dark.muted, fontSize: 12 }} />
-                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `${sym}${(v / 1e6).toFixed(1)}M` : `${sym}${(v / 1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 16, color: dark.muted }} />
                   <Area type="monotone" dataKey="contributions" name="Your Contributions" stroke={dark.purple} fill="url(#gContrib)" strokeWidth={2} />
@@ -570,7 +746,7 @@ export default function App() {
                   onChange={(e) => { setWhatIfContrib(Number(e.target.value)); trackEvent("whatif_contrib_slider", { value: Number(e.target.value) }); }}
                   style={{ width: "100%", ...sliderTrack(contribSlider, 0, 20000, dark.orange) }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: dark.muted, marginTop: 4 }}>
-                  <span>$0</span><span>$20,000/mo</span>
+                  <span>{sym}0</span><span>{sym}20,000/mo</span>
                 </div>
               </div>
 
@@ -585,7 +761,7 @@ export default function App() {
                   onChange={(e) => { setWhatIfExpenses(Number(e.target.value)); trackEvent("whatif_expenses_slider", { value: Number(e.target.value) }); }}
                   style={{ width: "100%", ...sliderTrack(expensesSlider, 10000, 200000, dark.purple) }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: dark.muted, marginTop: 4 }}>
-                  <span>$10k/yr</span><span>$200k/yr</span>
+                  <span>{sym}10k/yr</span><span>{sym}200k/yr</span>
                 </div>
               </div>
 

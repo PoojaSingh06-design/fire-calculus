@@ -31,6 +31,7 @@ function trackEvent(eventName, params = {}) {
 const COUNTRIES = {
   US: {
     flag: "🇺🇸", name: "United States", currency: "$", code: "USD",
+    tooltips: { savings: "Total investable assets — e.g. 401(k), Roth IRA, brokerage accounts. Don't include your home value.", monthlyContrib: "How much you invest monthly. Include your employer 401(k) match if applicable.", annualExpenses: "Planned annual spending in retirement in today's dollars. This is the most important number — it sets your FIRE target.", returnRate: "S&P 500 has historically returned ~10%/yr. 7% is a conservative post-fee estimate.", inflationRate: "US inflation has averaged ~3%. Higher inflation erodes real returns.", withdrawalRate: "The 4% rule (from US data) means your portfolio should last 30+ years. Go lower for more safety.", statePension: "Expected annual Social Security income. Check your estimate at ssa.gov. Reduces your required FIRE portfolio.", taxRate: "401(k)/IRA withdrawals taxed as income. Roth IRA is tax-free (enter 0%). Typical effective rate: 10–22%." },
     defaults: { annualExpenses: 50000, returnRate: 7, inflationRate: 3, withdrawalRate: 4, monthlyContrib: 1500, savings: 25000 },
     tips: [
       "Max out your 401(k) — 2024 limit is $23,000 (+$7,500 catch-up over 50)",
@@ -41,6 +42,7 @@ const COUNTRIES = {
   },
   UK: {
     flag: "🇬🇧", name: "United Kingdom", currency: "£", code: "GBP",
+    tooltips: { savings: "Total investable assets — e.g. Stocks & Shares ISA, SIPP, GIA. Don't include your home value.", monthlyContrib: "How much you invest monthly. Include employer pension contributions if applicable.", annualExpenses: "Planned annual spending in retirement in today's pounds. This directly sets your FIRE target.", returnRate: "UK/global equity funds have historically returned ~7–8%/yr. 6.5% is a conservative post-fee estimate.", inflationRate: "UK CPI has averaged ~3% historically. Higher inflation reduces your real returns.", withdrawalRate: "3.5% is safer for UK investors — the 4% rule is based on US market data.", statePension: "UK State Pension is ~£11,500/yr (full amount). Check your forecast at gov.uk/check-state-pension.", taxRate: "25% of pension is tax-free. Rest taxed as income — basic rate taxpayers pay 20%. Enter your expected effective rate." },
     defaults: { annualExpenses: 30000, returnRate: 6.5, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 1000, savings: 20000 },
     tips: [
       "ISA allowance is £20,000/yr — use it fully for tax-free growth",
@@ -51,6 +53,7 @@ const COUNTRIES = {
   },
   IN: {
     flag: "🇮🇳", name: "India", currency: "₹", code: "INR",
+    tooltips: { savings: "Total investable assets — e.g. mutual funds, PPF, NPS, stocks, FDs. Don't include property value.", monthlyContrib: "Monthly investments across all instruments — SIPs, PPF, NPS, direct equity etc.", annualExpenses: "Planned annual spending in retirement in today's rupees. This directly sets your FIRE target.", returnRate: "Nifty 50 has historically returned ~12%/yr. 10% is a conservative post-fee estimate.", inflationRate: "Indian inflation has averaged ~6%. This significantly reduces real returns — plan conservatively.", withdrawalRate: "3.5% is recommended for India given higher inflation and sequence-of-returns risk.", statePension: "Expected NPS annuity or EPF pension income per year. Enter 0 if you have no government pension.", taxRate: "Equity LTCG above ₹1L taxed at 10%. Debt fund gains taxed per income slab. Enter your expected effective rate." },
     defaults: { annualExpenses: 600000, returnRate: 10, inflationRate: 6, withdrawalRate: 3.5, monthlyContrib: 30000, savings: 500000 },
     tips: [
       "PPF (Public Provident Fund) offers tax-free returns at ~7.1% — max ₹1.5L/yr",
@@ -61,6 +64,7 @@ const COUNTRIES = {
   },
   AU: {
     flag: "🇦🇺", name: "Australia", currency: "A$", code: "AUD",
+    tooltips: { savings: "Total investable assets — e.g. Super balance, shares, ETFs. Don't include your home value.", monthlyContrib: "Monthly investments including voluntary super contributions and personal investments.", annualExpenses: "Planned annual spending in retirement in today's Australian dollars. This sets your FIRE target.", returnRate: "Australian super funds have historically returned ~7–8%/yr. 7% is a reasonable post-fee estimate.", inflationRate: "Australian CPI has averaged ~3% historically. This reduces real returns over time.", withdrawalRate: "4% is reasonable for Australian retirees. Age Pension and Super drawdown rules may also affect your strategy.", statePension: "Age Pension provides up to ~A$27,000/yr (singles). Subject to assets & income tests — check servicesaustralia.gov.au.", taxRate: "Super withdrawals after age 60 are tax-free — enter 0%. Before 60, a 15% tax may apply on the taxable component." },
     defaults: { annualExpenses: 55000, returnRate: 7, inflationRate: 3, withdrawalRate: 4, monthlyContrib: 2000, savings: 40000 },
     tips: [
       "Superannuation is compulsory at 11% of salary — check your balance regularly",
@@ -71,6 +75,7 @@ const COUNTRIES = {
   },
   CA: {
     flag: "🇨🇦", name: "Canada", currency: "C$", code: "CAD",
+    tooltips: { savings: "Total investable assets — e.g. TFSA, RRSP, non-registered accounts. Don't include your home value.", monthlyContrib: "Monthly investments. Include employer RRSP matching if applicable.", annualExpenses: "Planned annual spending in retirement in today's Canadian dollars. This sets your FIRE target.", returnRate: "Canadian and global equity funds have historically returned ~7–8%/yr. 6.5% is a conservative estimate.", inflationRate: "Canadian CPI has averaged ~3% historically. Higher inflation reduces real returns.", withdrawalRate: "4% is a reasonable start. CPP and OAS provide income that reduces how much you need to withdraw.", statePension: "CPP + OAS can provide ~C$18,000–22,000/yr. Check your estimate at My Service Canada.", taxRate: "TFSA withdrawals are tax-free (enter 0%). RRSP/RRIF withdrawals taxed as income — typical effective rate: 15–25%." },
     defaults: { annualExpenses: 50000, returnRate: 6.5, inflationRate: 3, withdrawalRate: 4, monthlyContrib: 1500, savings: 30000 },
     tips: [
       "TFSA (Tax-Free Savings Account) — 2024 contribution room is $7,000",
@@ -81,6 +86,7 @@ const COUNTRIES = {
   },
   EU: {
     flag: "🇪🇺", name: "Europe", currency: "€", code: "EUR",
+    tooltips: { savings: "Total investable assets — e.g. brokerage accounts, ETFs, pension funds. Don't include your home value.", monthlyContrib: "Monthly investments across all instruments — ETFs, pension contributions, savings plans etc.", annualExpenses: "Planned annual spending in retirement in today's euros. This directly sets your FIRE target.", returnRate: "European and global equity funds have historically returned ~6–7%/yr. 6% is a conservative post-fee estimate.", inflationRate: "Eurozone inflation has averaged ~3% but has been volatile recently. Adjust based on your country.", withdrawalRate: "3.5% recommended for European investors — the 4% rule was based on US data and may be too optimistic.", statePension: "Most EU countries have generous state pensions. Enter your expected annual amount to reduce your FIRE number.", taxRate: "Capital gains tax varies — e.g. 26.375% in Germany, 30% in France, 26% in Italy. Enter your country's effective rate." },
     defaults: { annualExpenses: 28000, returnRate: 6, inflationRate: 3, withdrawalRate: 3.5, monthlyContrib: 900, savings: 15000 },
     tips: [
       "Tax rules vary widely by country — check your local pension and ISA equivalents",
@@ -459,16 +465,17 @@ export default function App() {
 
   const hasIrregulars = Number(windfall) > 0 || Number(oneOff) > 0 || Number(annualIrregular) > 0 || Number(monthlyIrregular) > 0;
 
+  const t = countryData.tooltips;
   const fields = [
     { label: "Current Age", tooltip: "Your age today. This determines how many years you have to reach FIRE.", value: age, set: setAge, suffix: "yrs", min: 18, max: 70 },
-    { label: "Current Savings", tooltip: "Total investable assets you have right now — e.g. 401k, index funds, brokerage accounts. Don't include your home value.", value: savings, set: setSavings, prefix: sym, min: 0, max: 5000000, step: 1000 },
-    { label: "Monthly Contribution", tooltip: "How much you invest every month on top of your current savings. Include employer 401k match if applicable.", value: monthlyContrib, set: setMonthlyContrib, prefix: sym, suffix: "/mo", min: 0, max: 50000, step: 100 },
-    { label: "Annual Expenses (Retirement)", tooltip: "How much you plan to spend per year in retirement, in today's dollars. This is the most important number — it directly sets your FIRE target.", value: annualExpenses, set: setAnnualExpenses, prefix: sym, suffix: "/yr", min: 10000, max: 500000, step: 1000 },
-    { label: "Expected Annual Return", tooltip: "The average yearly return on your investments before inflation. The S&P 500 has historically returned ~10% annually. 7% is a conservative estimate.", value: returnRate, set: setReturnRate, suffix: "%", min: 1, max: 15, step: 0.5 },
-    { label: "Inflation Rate", tooltip: "The average annual rise in prices. Historically ~3% in the US. This reduces the real value of your returns over time.", value: inflationRate, set: setInflationRate, suffix: "%", min: 0, max: 10, step: 0.5 },
-    { label: "Safe Withdrawal Rate", tooltip: "The % of your portfolio you withdraw each year in retirement. The classic 4% rule means your money should last 30+ years. Lower = more conservative.", value: withdrawalRate, set: setWithdrawalRate, suffix: "%", min: 2, max: 6, step: 0.5 },
-    { label: "Expected Gov. Pension / Social Security", tooltip: "Annual income you expect from state pension, social security, or similar government schemes (e.g. UK State Pension ~£11,500/yr, US Social Security, AU Age Pension). This reduces the amount your portfolio needs to cover — lowering your FIRE number.", value: statePension, set: setStatePension, prefix: sym, suffix: "/yr", min: 0, max: 100000, step: 500 },
-    { label: "Effective Tax Rate on Withdrawals", tooltip: "The average tax rate you expect to pay on your portfolio withdrawals in retirement. E.g. 20% for UK basic rate taxpayer on pension income, 15% for Australian super, 26% for Germany's Abgeltungsteuer. Leave at 0 if your withdrawals are tax-free (e.g. Roth IRA, ISA). This grosses up your required withdrawals so your FIRE number reflects real take-home spending.", value: taxRate, set: setTaxRate, suffix: "%", min: 0, max: 60, step: 1 },
+    { label: "Current Savings", tooltip: t.savings, value: savings, set: setSavings, prefix: sym, min: 0, max: 5000000, step: 1000 },
+    { label: "Monthly Contribution", tooltip: t.monthlyContrib, value: monthlyContrib, set: setMonthlyContrib, prefix: sym, suffix: "/mo", min: 0, max: 50000, step: 100 },
+    { label: "Annual Expenses (Retirement)", tooltip: t.annualExpenses, value: annualExpenses, set: setAnnualExpenses, prefix: sym, suffix: "/yr", min: 10000, max: 500000, step: 1000 },
+    { label: "Expected Annual Return", tooltip: t.returnRate, value: returnRate, set: setReturnRate, suffix: "%", min: 1, max: 15, step: 0.5 },
+    { label: "Inflation Rate", tooltip: t.inflationRate, value: inflationRate, set: setInflationRate, suffix: "%", min: 0, max: 10, step: 0.5 },
+    { label: "Safe Withdrawal Rate", tooltip: t.withdrawalRate, value: withdrawalRate, set: setWithdrawalRate, suffix: "%", min: 2, max: 6, step: 0.5 },
+    { label: "Expected Gov. Pension / Social Security", tooltip: t.statePension, value: statePension, set: setStatePension, prefix: sym, suffix: "/yr", min: 0, max: 100000, step: 500 },
+    { label: "Effective Tax Rate on Withdrawals", tooltip: t.taxRate, value: taxRate, set: setTaxRate, suffix: "%", min: 0, max: 60, step: 1 },
   ];
 
   const irregularFields = [

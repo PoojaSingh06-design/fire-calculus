@@ -89,19 +89,41 @@ function calcRequiredExpenses(savings, monthlyContrib, realReturn, targetYears, 
   return portfolio * withdrawalRate;
 }
 
+function getParamsFromUrl() {
+  const p = new URLSearchParams(window.location.search);
+  return {
+    age: p.get("age"), savings: p.get("savings"), monthlyContrib: p.get("mc"),
+    annualExpenses: p.get("ae"), returnRate: p.get("rr"), inflationRate: p.get("ir"),
+    withdrawalRate: p.get("wr"), windfall: p.get("wf"), oneOff: p.get("oo"),
+    annualIrregular: p.get("ai"), monthlyIrregular: p.get("mi"),
+  };
+}
+
+function buildShareUrl(vals) {
+  const base = window.location.href.split("?")[0];
+  const p = new URLSearchParams({
+    age: vals.age, savings: vals.savings, mc: vals.monthlyContrib,
+    ae: vals.annualExpenses, rr: vals.returnRate, ir: vals.inflationRate,
+    wr: vals.withdrawalRate, wf: vals.windfall || 0, oo: vals.oneOff || 0,
+    ai: vals.annualIrregular || 0, mi: vals.monthlyIrregular || 0,
+  });
+  return `${base}?${p.toString()}`;
+}
+
 export default function App() {
-  const [age, setAge] = useState("");
-  const [savings, setSavings] = useState("");
-  const [monthlyContrib, setMonthlyContrib] = useState("");
-  const [annualExpenses, setAnnualExpenses] = useState("");
-  const [returnRate, setReturnRate] = useState("");
-  const [inflationRate, setInflationRate] = useState("");
-  const [withdrawalRate, setWithdrawalRate] = useState("");
-  const [windfall, setWindfall] = useState("");
-  const [oneOff, setOneOff] = useState("");
-  const [annualIrregular, setAnnualIrregular] = useState("");
-  const [monthlyIrregular, setMonthlyIrregular] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const url = getParamsFromUrl();
+  const [age, setAge] = useState(url.age ? Number(url.age) : "");
+  const [savings, setSavings] = useState(url.savings ? Number(url.savings) : "");
+  const [monthlyContrib, setMonthlyContrib] = useState(url.monthlyContrib ? Number(url.monthlyContrib) : "");
+  const [annualExpenses, setAnnualExpenses] = useState(url.annualExpenses ? Number(url.annualExpenses) : "");
+  const [returnRate, setReturnRate] = useState(url.returnRate ? Number(url.returnRate) : "");
+  const [inflationRate, setInflationRate] = useState(url.inflationRate ? Number(url.inflationRate) : "");
+  const [withdrawalRate, setWithdrawalRate] = useState(url.withdrawalRate ? Number(url.withdrawalRate) : "");
+  const [windfall, setWindfall] = useState(url.windfall ? Number(url.windfall) : "");
+  const [oneOff, setOneOff] = useState(url.oneOff ? Number(url.oneOff) : "");
+  const [annualIrregular, setAnnualIrregular] = useState(url.annualIrregular ? Number(url.annualIrregular) : "");
+  const [monthlyIrregular, setMonthlyIrregular] = useState(url.monthlyIrregular ? Number(url.monthlyIrregular) : "");
+  const [submitted, setSubmitted] = useState(!!url.age);
   const [copied, setCopied] = useState(false);
 
   // Load GA once on mount
@@ -173,7 +195,8 @@ export default function App() {
   const whatIfExpFireAge = result.ageVal + calcYearsToFire(result.savingsVal, result.monthlyContribVal, expensesSlider / (result.withdrawalRateVal / 100), result.realReturn);
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const url = buildShareUrl({ age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular });
+    navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
     trackEvent("share_results", { fire_age: result.fireAge, years_to_fire: result.yearsToFire });
@@ -333,21 +356,27 @@ export default function App() {
             <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}`, marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 4px 16px", fontWeight: 700, fontSize: 16 }}>📈 Portfolio Growth</h3>
               <p style={{ margin: "0 0 20px 16px", fontSize: 13, color: dark.muted }}>Base, conservative & aggressive scenarios with FIRE milestones</p>
-              <ResponsiveContainer width="100%" height={340}>
-                <LineChart data={result.chartData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+              <ResponsiveContainer width="100%" height={360}>
+                <LineChart data={result.chartData} margin={{ top: 10, right: 20, left: 10, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e2130" />
                   <XAxis dataKey="age" stroke={dark.muted} tick={{ fontSize: 12, fill: dark.muted }} label={{ value: "Age", position: "insideBottom", offset: -10, fill: dark.muted, fontSize: 12 }} />
                   <YAxis stroke={dark.muted} tick={{ fontSize: 11, fill: dark.muted }} width={65} tickFormatter={(v) => v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${(v / 1000).toFixed(0)}k`} />
                   <Tooltip content={<ChartTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 16, color: dark.muted }} />
-                  {milestones.map(m => <ReferenceLine key={m.label} y={m.value} stroke={m.color} strokeDasharray="5 3" label={{ value: m.label, fill: m.color, fontSize: 11, position: "insideTopRight" }} />)}
-                  <ReferenceLine y={result.fireNumber} stroke={dark.orange} strokeDasharray="6 3" strokeWidth={2} label={{ value: `FIRE: ${fmt(result.fireNumber)}`, fill: dark.orange, fontSize: 11, position: "insideTopRight" }} />
+                  {milestones.map(m => <ReferenceLine key={m.label} y={m.value} stroke={m.color} strokeDasharray="5 3" />)}
+                  <ReferenceLine y={result.fireNumber} stroke={dark.orange} strokeDasharray="6 3" strokeWidth={2} />
                   <Line type="monotone" dataKey="aggressive" name="Aggressive" stroke={dark.green} strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="portfolio" name="Base Case" stroke={dark.orange} strokeWidth={3} dot={false} />
                   <Line type="monotone" dataKey="conservative" name="Conservative" stroke={dark.red} strokeWidth={2} dot={false} strokeDasharray="4 2" />
                   {hasIrregulars && <Line type="monotone" dataKey="adjusted" name="With Irregulars" stroke={dark.blue} strokeWidth={2} dot={false} strokeDasharray="6 3" />}
                 </LineChart>
               </ResponsiveContainer>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 20px", padding: "8px 16px 4px", justifyContent: "center" }}>
+                <span style={{ fontSize: 12, color: dark.orange, display: "flex", alignItems: "center", gap: 6 }}><span style={{ display: "inline-block", width: 24, borderTop: `2px dashed ${dark.orange}` }} /> FIRE Target: {fmt(result.fireNumber)}</span>
+                {milestones.map(m => (
+                  <span key={m.label} style={{ fontSize: 12, color: m.color, display: "flex", alignItems: "center", gap: 6 }}><span style={{ display: "inline-block", width: 24, borderTop: `2px dashed ${m.color}` }} />{m.label}: {fmt(m.value)}</span>
+                ))}
+              </div>
             </div>
 
             <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}`, marginBottom: 20 }}>

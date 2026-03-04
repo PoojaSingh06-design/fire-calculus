@@ -6,7 +6,6 @@ import {
 
 const fmt = (n) => n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`;
 
-// Remove number input spinners globally
 const style = document.createElement("style");
 style.textContent = `input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type=number] { -moz-appearance: textfield; }`;
 document.head.appendChild(style);
@@ -46,9 +45,10 @@ const ChartTooltip = ({ active, payload }) => {
   );
 };
 
-function calcYearsToFire(savings, monthlyContrib, fireNumber, realReturn, extraAnnual = 0, extraMonthly = 0) {
+function calcYearsToFire(savings, monthlyContrib, fireNumber, realReturn, oneOffExpense = 0, extraAnnual = 0, extraMonthly = 0) {
   const monthlyReturn = Math.pow(1 + realReturn, 1 / 12) - 1;
-  let portfolio = savings, year = 0;
+  let portfolio = Math.max(0, savings - oneOffExpense);
+  let year = 0;
   const netMonthly = monthlyContrib - extraMonthly;
   while (portfolio < fireNumber && year < 60) {
     for (let m = 0; m < 12; m++) portfolio = portfolio * (1 + monthlyReturn) + netMonthly;
@@ -83,27 +83,32 @@ export default function App() {
   const [returnRate, setReturnRate] = useState(Number(url.returnRate) || 7);
   const [inflationRate, setInflationRate] = useState(Number(url.inflationRate) || 3);
   const [withdrawalRate, setWithdrawalRate] = useState(Number(url.withdrawalRate) || 4);
-  const [windfall, setWindfall] = useState(Number(url.windfall) || 0);
-  const [oneOff, setOneOff] = useState(Number(url.oneOff) || 0);
-  const [annualIrregular, setAnnualIrregular] = useState(Number(url.annualIrregular) || 0);
-  const [monthlyIrregular, setMonthlyIrregular] = useState(Number(url.monthlyIrregular) || 0);
+  const [windfall, setWindfall] = useState(url.windfall ? Number(url.windfall) : "");
+  const [oneOff, setOneOff] = useState(url.oneOff ? Number(url.oneOff) : "");
+  const [annualIrregular, setAnnualIrregular] = useState(url.annualIrregular ? Number(url.annualIrregular) : "");
+  const [monthlyIrregular, setMonthlyIrregular] = useState(url.monthlyIrregular ? Number(url.monthlyIrregular) : "");
   const [submitted, setSubmitted] = useState(!!url.age);
   const [copied, setCopied] = useState(false);
 
   const result = useMemo(() => {
+    const windfallVal = Number(windfall) || 0;
+    const oneOffVal = Number(oneOff) || 0;
+    const annualIrregularVal = Number(annualIrregular) || 0;
+    const monthlyIrregularVal = Number(monthlyIrregular) || 0;
+
     const fireNumber = annualExpenses / (withdrawalRate / 100);
     const realReturn = (1 + returnRate / 100) / (1 + inflationRate / 100) - 1;
     const monthlyReturn = Math.pow(1 + realReturn, 1 / 12) - 1;
     const cMonthlyReturn = Math.pow(1 + Math.max(0, realReturn - 0.01), 1 / 12) - 1;
     const aMonthlyReturn = Math.pow(1 + realReturn + 0.01, 1 / 12) - 1;
 
-    const baseYears = calcYearsToFire(savings + windfall, monthlyContrib, fireNumber, realReturn);
-    const withExpensesYears = calcYearsToFire(savings + windfall, monthlyContrib, fireNumber, realReturn, annualIrregular + oneOff, monthlyIrregular);
+    const baseYears = calcYearsToFire(savings + windfallVal, monthlyContrib, fireNumber, realReturn);
+    const withExpensesYears = calcYearsToFire(savings + windfallVal, monthlyContrib, fireNumber, realReturn, oneOffVal, annualIrregularVal, monthlyIrregularVal);
     const impactYears = withExpensesYears - baseYears;
 
-    let portfolio = savings + windfall, cPort = savings + windfall, aPort = savings + windfall;
-    let adjPort = savings + windfall;
-    let totalContributed = savings + windfall, year = 0;
+    let portfolio = savings + windfallVal, cPort = savings + windfallVal, aPort = savings + windfallVal;
+    let adjPort = Math.max(0, savings + windfallVal - oneOffVal);
+    let totalContributed = savings + windfallVal, year = 0;
     const chartData = [], breakdownData = [];
     const maxYears = Math.max(withExpensesYears, baseYears) + 1;
 
@@ -114,10 +119,10 @@ export default function App() {
         portfolio = portfolio * (1 + monthlyReturn) + monthlyContrib;
         cPort = cPort * (1 + cMonthlyReturn) + monthlyContrib;
         aPort = aPort * (1 + aMonthlyReturn) + monthlyContrib;
-        adjPort = adjPort * (1 + monthlyReturn) + (monthlyContrib - monthlyIrregular);
+        adjPort = adjPort * (1 + monthlyReturn) + (monthlyContrib - monthlyIrregularVal);
         totalContributed += monthlyContrib;
       }
-      adjPort -= (annualIrregular + oneOff);
+      adjPort -= annualIrregularVal;
       year++;
     }
     chartData.push({ year, age: age + year, portfolio: Math.round(portfolio), conservative: Math.round(cPort), aggressive: Math.round(aPort), adjusted: Math.round(adjPort), fireNumber: Math.round(fireNumber) });
@@ -127,13 +132,15 @@ export default function App() {
   }, [age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular]);
 
   const handleShare = () => {
-    const url = getShareUrl({ age, savings, mc: monthlyContrib, ae: annualExpenses, rr: returnRate, ir: inflationRate, wr: withdrawalRate, wf: windfall, oo: oneOff, ai: annualIrregular, mi: monthlyIrregular });
-    navigator.clipboard.writeText(url);
+    const u = getShareUrl({ age, savings, mc: monthlyContrib, ae: annualExpenses, rr: returnRate, ir: inflationRate, wr: withdrawalRate, wf: windfall, oo: oneOff, ai: annualIrregular, mi: monthlyIrregular });
+    navigator.clipboard.writeText(u);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const inputBase = { width: "100%", padding: "10px 12px", borderRadius: 8, border: `1.5px solid ${dark.border}`, fontSize: 15, outline: "none", boxSizing: "border-box", background: "#0f1117", color: dark.text, MozAppearance: "textfield", WebkitAppearance: "none" };
+
+  const hasIrregulars = Number(windfall) > 0 || Number(oneOff) > 0 || Number(annualIrregular) > 0 || Number(monthlyIrregular) > 0;
 
   const fields = [
     { label: "Current Age", tooltip: "Your age today. This determines how many years you have to reach FIRE.", value: age, set: setAge, suffix: "yrs", min: 18, max: 70 },
@@ -147,7 +154,7 @@ export default function App() {
 
   const irregularFields = [
     { label: "Expected Windfall / Inheritance", tooltip: "A one-time lump sum you expect to receive, like an inheritance or bonus. This is added directly to your savings today.", value: windfall, set: setWindfall, prefix: "$", step: 1000 },
-    { label: "One-off Big Expense", tooltip: "A large one-time cost like a wedding, car, or house deposit. This is deducted from your portfolio when it occurs.", value: oneOff, set: setOneOff, prefix: "$", step: 1000 },
+    { label: "One-off Big Expense", tooltip: "A large one-time cost like a wedding, car, or house deposit. This is deducted from your portfolio once immediately.", value: oneOff, set: setOneOff, prefix: "$", step: 1000 },
     { label: "Annual Irregular Expenses", tooltip: "Costs that happen once a year but aren't in your regular budget — e.g. holidays, home repairs, insurance. These reduce your portfolio each year.", value: annualIrregular, set: setAnnualIrregular, prefix: "$", suffix: "/yr", step: 500 },
     { label: "Monthly Irregular Expenses", tooltip: "Extra monthly costs outside your core budget — e.g. dining out, subscriptions, hobbies. These reduce your monthly contributions.", value: monthlyIrregular, set: setMonthlyIrregular, prefix: "$", suffix: "/mo", step: 100 },
   ];
@@ -157,11 +164,8 @@ export default function App() {
     { label: "50x (Fat FIRE)", value: annualExpenses * 50, color: dark.purple },
   ];
 
-  const hasIrregulars = windfall > 0 || oneOff > 0 || annualIrregular > 0 || monthlyIrregular > 0;
-
   return (
     <div style={{ minHeight: "100vh", background: dark.bg, fontFamily: "'Inter', sans-serif", color: dark.text }}>
-      {/* Header */}
       <div style={{ background: dark.card, padding: "14px 24px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ background: dark.orange, borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🔥</div>
         <span style={{ fontWeight: 800, fontSize: 18 }}>FIRE Calculus</span>
@@ -169,7 +173,6 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: 920, margin: "0 auto", padding: "40px 20px" }}>
-        {/* Hero */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
           <h1 style={{ fontSize: 36, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
             When can you <span style={{ color: dark.orange }}>retire early?</span>
@@ -177,7 +180,6 @@ export default function App() {
           <p style={{ color: dark.muted, marginTop: 10, fontSize: 16 }}>Enter your numbers and get your FIRE date instantly.</p>
         </div>
 
-        {/* Core Inputs */}
         <div style={{ background: dark.card, borderRadius: 16, padding: 28, border: `1px solid ${dark.border}`, marginBottom: 16 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 14, color: dark.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Core Details</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
@@ -196,7 +198,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Irregular Expenses */}
         <div style={{ background: dark.card, borderRadius: 16, padding: 28, border: `1px solid ${dark.border}`, marginBottom: 28 }}>
           <h3 style={{ margin: "0 0 4px", fontSize: 14, color: dark.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Irregular Expenses & Windfalls</h3>
           <p style={{ margin: "0 0 20px", fontSize: 13, color: dark.muted }}>See how these impact your FIRE date separately</p>
@@ -208,7 +209,7 @@ export default function App() {
                 </label>
                 <div style={{ position: "relative" }}>
                   {prefix && <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: dark.muted, fontSize: 15 }}>{prefix}</span>}
-                  <input type="number" value={value} min={0} step={step} onChange={(e) => set(Number(e.target.value))} style={{ ...inputBase, paddingLeft: prefix ? 22 : 12, paddingRight: suffix ? 40 : 12 }} />
+                  <input type="number" value={value} placeholder="0" min={0} step={step} onChange={(e) => set(e.target.value === "" ? "" : Number(e.target.value))} style={{ ...inputBase, paddingLeft: prefix ? 22 : 12, paddingRight: suffix ? 40 : 12 }} />
                   {suffix && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: dark.muted, fontSize: 13 }}>{suffix}</span>}
                 </div>
               </div>
@@ -222,7 +223,6 @@ export default function App() {
 
         {submitted && (
           <>
-            {/* Summary Cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 16 }}>
               {[
                 { label: "FIRE Date", value: `Age ${result.fireAge}`, sub: `In ${result.yearsToFire} years`, color: dark.orange },
@@ -238,7 +238,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* Impact Card */}
             {hasIrregulars && (
               <div style={{ background: dark.card, borderRadius: 14, padding: "20px 24px", border: `1px solid ${dark.border}`, borderLeft: `4px solid ${result.impactYears > 0 ? dark.red : dark.green}`, marginBottom: 16 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: dark.text, margin: "0 0 12px" }}>💸 Impact of Irregular Expenses & Windfalls</p>
@@ -261,14 +260,12 @@ export default function App() {
               </div>
             )}
 
-            {/* Share Button */}
             <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
               <button onClick={handleShare} style={{ padding: "10px 20px", background: copied ? dark.green : dark.card, color: copied ? "#fff" : dark.text, border: `1px solid ${copied ? dark.green : dark.border}`, borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
                 {copied ? "✅ Link Copied!" : "🔗 Share My Results"}
               </button>
             </div>
 
-            {/* Chart 1 */}
             <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}`, marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 4px 16px", fontWeight: 700, fontSize: 16 }}>📈 Portfolio Growth</h3>
               <p style={{ margin: "0 0 20px 16px", fontSize: 13, color: dark.muted }}>Base, conservative & aggressive scenarios with FIRE milestones</p>
@@ -289,7 +286,6 @@ export default function App() {
               </ResponsiveContainer>
             </div>
 
-            {/* Chart 2 */}
             <div style={{ background: dark.card, borderRadius: 16, padding: "24px 8px 16px", border: `1px solid ${dark.border}` }}>
               <h3 style={{ margin: "0 0 4px 16px", fontWeight: 700, fontSize: 16 }}>💰 Contributions vs. Investment Growth</h3>
               <p style={{ margin: "0 0 20px 16px", fontSize: 13, color: dark.muted }}>See how much of your wealth comes from saving vs. the market</p>

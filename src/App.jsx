@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ReferenceLine, ResponsiveContainer, AreaChart, Area
@@ -24,6 +24,18 @@ function trackEvent(eventName, params = {}) {
   if (typeof window.gtag === "function") {
     window.gtag("event", eventName, params);
   }
+}
+// ─────────────────────────────────────────────────────────────────
+
+// ── html2canvas loader ────────────────────────────────────────────
+function loadHtml2Canvas() {
+  return new Promise((resolve) => {
+    if (window.html2canvas) return resolve(window.html2canvas);
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    s.onload = () => resolve(window.html2canvas);
+    document.head.appendChild(s);
+  });
 }
 // ─────────────────────────────────────────────────────────────────
 
@@ -125,6 +137,8 @@ export default function App() {
   const [monthlyIrregular, setMonthlyIrregular] = useState(url.monthlyIrregular ? Number(url.monthlyIrregular) : "");
   const [submitted, setSubmitted] = useState(!!url.age);
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const shareCardRef = useRef(null);
 
   // Load GA once on mount
   useEffect(() => { loadGA(); }, []);
@@ -194,12 +208,26 @@ export default function App() {
 
   const whatIfExpFireAge = result.ageVal + calcYearsToFire(result.savingsVal, result.monthlyContribVal, expensesSlider / (result.withdrawalRateVal / 100), result.realReturn);
 
-  const handleShare = () => {
-    const url = buildShareUrl({ age, savings, monthlyContrib, annualExpenses, returnRate, inflationRate, withdrawalRate, windfall, oneOff, annualIrregular, monthlyIrregular });
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    trackEvent("share_results", { fire_age: result.fireAge, years_to_fire: result.yearsToFire });
+  const handleSaveImage = async () => {
+    if (!shareCardRef.current || saving) return;
+    setSaving(true);
+    trackEvent("save_results_image", { fire_age: result.fireAge, years_to_fire: result.yearsToFire });
+    try {
+      const html2canvas = await loadHtml2Canvas();
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: "#0f1117",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement("a");
+      link.download = "my-fire-results.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (e) {
+      console.error(e);
+    }
+    setSaving(false);
   };
 
   const inputBase = {
@@ -348,8 +376,8 @@ export default function App() {
             )}
 
             <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={handleShare} style={{ padding: "10px 20px", background: copied ? dark.green : dark.card, color: copied ? "#fff" : dark.text, border: `1px solid ${copied ? dark.green : dark.border}`, borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
-                {copied ? "✅ Link Copied!" : "🔗 Share My Results"}
+              <button onClick={handleSaveImage} disabled={saving} style={{ padding: "10px 20px", background: saving ? dark.border : dark.orange, color: "#fff", border: "none", borderRadius: 8, cursor: saving ? "not-allowed" : "pointer", fontSize: 14, fontWeight: 600, boxShadow: saving ? "none" : `0 0 16px rgba(249,115,22,0.3)` }}>
+                {saving ? "⏳ Saving..." : "📸 Save as Image"}
               </button>
             </div>
 
@@ -464,7 +492,7 @@ export default function App() {
             </div>
 
             <div style={{ marginTop: 20, textAlign: "center", color: dark.muted, fontSize: 13 }}>
-              💡 Share this with a friend thinking about FIRE — it's free and takes 30 seconds.
+              💡 Hit "Save as Image" above and share your results on Reddit or with a friend!
             </div>
           </>
         )}

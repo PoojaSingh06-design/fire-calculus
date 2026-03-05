@@ -582,7 +582,7 @@ export default function App() {
                     value={prefix ? formatInputDisplay(value, country) : value}
                     placeholder="0" min={min} max={max} step={step}
                     onChange={(e) => set(parseInputValue(e.target.value))}
-                    style={{ ...inputBase, paddingLeft: prefix ? 22 : 12, paddingRight: suffix ? 40 : 12 }} />
+                    style={{ ...inputBase, paddingLeft: prefix ? (prefix.length > 1 ? 36 : 26) : 12, paddingRight: suffix ? 40 : 12 }} />
                   {suffix && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: dark.muted, fontSize: 13 }}>{suffix}</span>}
                 </div>
               </div>
@@ -606,7 +606,7 @@ export default function App() {
                     value={prefix ? formatInputDisplay(value, country) : value}
                     placeholder="0" min={0} step={step}
                     onChange={(e) => set(parseInputValue(e.target.value))}
-                    style={{ ...inputBase, paddingLeft: prefix ? 22 : 12, paddingRight: suffix ? 40 : 12 }} />
+                    style={{ ...inputBase, paddingLeft: prefix ? (prefix.length > 1 ? 36 : 26) : 12, paddingRight: suffix ? 40 : 12 }} />
                   {suffix && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: dark.muted, fontSize: 13 }}>{suffix}</span>}
                 </div>
               </div>
